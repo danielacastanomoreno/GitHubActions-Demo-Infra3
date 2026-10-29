@@ -1,0 +1,30 @@
+name: Pruebas automáticas
+
+on:
+  pull_request:
+    branches: [main]        # cada PR hacia main
+  push:
+    branches: [main]        # y cada push a main
+
+permissions:
+  contents: read            # mínimo privilegio para GITHUB_TOKEN
+
+jobs:
+  test:
+    name: Ejecutar pruebas (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]      # opcional: muestra la matriz en paralelo
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v5
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false   # no hay dependencias que cachear
+
+      - name: Ejecutar pruebas
+        run: npm test
