@@ -2,20 +2,21 @@ name: Pruebas automáticas
 
 on:
   pull_request:
-    branches: [main]        # cada PR hacia main
+    branches: [main]
   push:
-    branches: [main]        # y cada push a main
+    branches: [main]
 
 permissions:
-  contents: read            # mínimo privilegio para GITHUB_TOKEN
+  contents: read
 
 jobs:
   test:
     name: Ejecutar pruebas (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node: [20, 22]      # opcional: muestra la matriz en paralelo
+        node: [20, 22]
     steps:
       - name: Descargar el código
         uses: actions/checkout@v5
@@ -24,7 +25,43 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
-          package-manager-cache: false   # no hay dependencias que cachear
+          package-manager-cache: false
 
       - name: Ejecutar pruebas
         run: npm test
+
+  deploy:
+    name: Publicar en GitHub Pages
+    needs: test                                   # solo si TODAS las pruebas pasaron
+    if: github.event_name == 'push'               # solo al fusionar a main, no en PRs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages                                # nunca dos publicaciones a la vez
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v5
+
+      - name: Preparar la web
+        run: |
+          cp calculadora.js web/
+          sed -i "s/__VERSION__/${GITHUB_SHA::7}/" web/index.html
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Empaquetar la web
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./web
+
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
