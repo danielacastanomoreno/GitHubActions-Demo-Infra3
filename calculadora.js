@@ -7,4 +7,8 @@ function dividir(a, b) {
   return a / b;
 }
 
-module.exports = { sumar, dividir };
+
+if (typeof module !== 'undefined') {
+  module.exports = { sumar, dividir };
+}
+
